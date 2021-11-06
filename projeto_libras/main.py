@@ -5,6 +5,8 @@ import uuid
 import numpy as np
 import mediapipe as mp
 from datetime import datetime as dt
+import calculos
+
 # import matplotlib.pyplot as plt
 
 # --- Variáveis globais ---
@@ -17,7 +19,7 @@ SAMPLE_IMAGE = INPUT_IMAGES_PATH + "letra_a_img_mao_direita.jpg"
 # SAMPLE_IMAGE = INPUT_IMAGES_PATH + "letra_a_img_mao_esquerda.jpg"
 # SAMPLE_IMAGE = INPUT_IMAGES_PATH + "letra_a_img_duas_maos.jpg"
 
-# Câmera (imagem)
+# Dimensões da imagem lida (padrão)
 IMG_WIDTH, IMG_HEIGHT = 640, 480
 
 # Dedos
@@ -29,12 +31,18 @@ MIN_DETECTION_CONFIDENCE = 0.8  # Nivel de confiança mínimo para detecção
 MIN_TRACKING_CONFIDENCE = 0.5  # Nível de confiança mínimo para rastreio
 
 # Parâmetros do desenho (retas e pontos)
-LINE_COLOR = (121, 22, 76)
+LINE_COLOR = (121, 22, 76)  # BGR (Blue, Green, Red)
 LINE_THICKNESS = 2
 LINE_CIRCLE_RADIUS = 4
-POINT_COLOR = (250, 44, 250)
+
+POINT_COLOR = (0, 0, 255)  # BGR
 POINT_THICKNESS = 2
 POINT_CIRCLE_RADIUS = 2
+
+# Parâmetros de texto
+TEXT_SCALE = 0.5
+TEXT_COLOR = (255, 255, 255)  # BGR
+TEXT_THICKNESS = 1
 # -------------------------
 
 
@@ -46,7 +54,7 @@ def display_webcam(filename=None):
 
     # Create a video capture object for the camera
     cap = cv2.VideoCapture(0)  # Maioria dos casos a câmera da webcam é 0
-    print("Pressiona letra Q para terminar processo e S para salvar frame na pasta de saída.")
+    print("Pressione letra Q para terminar processo e letra S para salvar frame na pasta de saída.")
 
     try:
         while True:
@@ -61,7 +69,11 @@ def display_webcam(filename=None):
 
             # # Salvar imagem
             # print("Salvar frame...")
-            # time.sleep(3)
+            # count = 0
+            # while count <= 3:
+            #     print(f"Salvando em : {(3-count)}s")
+            #     time.sleep(1)
+            #     count += 1
             # file_name = '{}.jpg'.format(uuid.uuid1())  # Nome únicoq
             # cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, cv2.flip(frame, 1))  # Salvar frame
             # print("Frame salvo.")
@@ -73,8 +85,8 @@ def display_webcam(filename=None):
             elif cv2.waitKey(1) & 0xFF == ord('s'):
                 # Salvar imagem com nome único
                 print("Salvando frame...")
-                file_name = '{}.jpg'.format(uuid.uuid1())  # Nome únicoq
-                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, cv2.flip(frame, 1))  # Salvar frame
+                file_name = '{}.jpg'.format(uuid.uuid1())  # Nome único
+                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, cv2.flip(frame, 1))  # Salvar frame (inverte imagem para orientação correta)
                 print("Frame salvo.")
                 # break
 
@@ -92,10 +104,10 @@ def get_hand_informations(index, hand_landmarks, mark_name, results):
     Retorna um texto com o label (left ou right) e o score para uma mão específica (índice), e
     as coordenadas x e y desta mão para um ponto da mão específico.
     """
-    output = None
 
     # Mão detectada
     detected_hand = results.multi_handedness[index]
+
     # Extrair informações (label e score)
     label = detected_hand.classification[0].label
     score = detected_hand.classification[0].score
@@ -111,85 +123,32 @@ def get_hand_informations(index, hand_landmarks, mark_name, results):
 
     output = text, coords
 
-    # # Tratativa para apenas uma mão
-    # if len(results.multi_hand_landmarks) == 1:
-    #     # Mão detectada
-    #     detected_hand = results.multi_handedness[0]
-    #
-    #     # Extrair informações (label e score)
-    #     label = detected_hand.classification[0].label
-    #     score = detected_hand.classification[0].score
-    #     text = 'Label: {}, Score: {}'.format(label, round(score, 2))
-    #
-    #     # Extrair coordenadas de um ponto específico
-    #     x = hand_landmarks.landmark[mark_name].x
-    #     y = hand_landmarks.landmark[mark_name].y
-    #
-    #     # Cálculo de coordenadas
-    #     multiply = np.multiply(np.array((x, y)), [IMG_WIDTH, IMG_HEIGHT])
-    #     coords = tuple(multiply.astype(int))
-    #
-    #     output = text, coords
-    #
-    # else:
-    #     # Mão detectada
-    #     detected_hand = results.multi_handedness[index]
-    #     # Extrair informações (label e score)
-    #     label = detected_hand.classification[0].label
-    #     score = detected_hand.classification[0].score
-    #     text = 'Label: {}, Score: {}'.format(label, round(score, 2))
-    #
-    #     # Extrair coordenadas de um ponto específico
-    #     x = hand_landmarks.landmark[mark_name].x
-    #     y = hand_landmarks.landmark[mark_name].y
-    #
-    #     # Cálculo de coordenadas
-    #     multiply = np.multiply(np.array((x, y)), [IMG_WIDTH, IMG_HEIGHT])
-    #     coords = tuple(multiply.astype(int))
-    #
-    #     output = text, coords
-
-        # Loop sobre cada mão detectada
-        # for detected_hand in results.multi_handedness:
-        #
-        #     # Encontra a mão correta pelo índice
-        #     if detected_hand.classification[0].index == index:  # TODO: corrigir aqui (verificar o que funciona)!!!
-        #
-        #         # Extrair informações (label e score)
-        #         label = detected_hand.classification[0].label
-        #         score = detected_hand.classification[0].score
-        #         text = 'Label: {}, Score: {}'.format(label, round(score, 2))
-        #
-        #         # Extrair coordenadas de um ponto específico
-        #         x = hand_landmarks.landmark[mark_name].x
-        #         y = hand_landmarks.landmark[mark_name].y
-        #
-        #         # Cálculo de coordenadas
-        #         multiply = np.multiply(np.array((x, y)), [IMG_WIDTH, IMG_HEIGHT])
-        #         coords = tuple(multiply.astype(int))
-        #
-        #         output = text, coords
-
     return output
 
 
 def process_image():
-    # TODO: colocar uma descrição da função
-    # Etapa 2.1: Ler imagem padrão
+    """
+    Lê uma imagem padrão (input) e aplica a solução de rastreio e detecção de pontos da mão na imagem da webcam. Faz o cortorno dos pontos detectados
+    e coloca na imagem algumas informações básicas.
+    """
     print("Processar uma imagem padrão...")
-    # img = cv2.imread(SAMPLE_IMAGE, 0)  # Grayscale
-    # img = cv2.imread(SAMPLE_IMAGE, cv2.IMREAD_COLOR)
 
-    # Ler imagem
+    # Ler imagem padrão
     img = cv2.imread(SAMPLE_IMAGE)  # Imagem lida com formato BGR
+    # img = cv2.imread(SAMPLE_IMAGE, 0)  # Grayscale
+
+    # Dimensões da imagem
+    IMG_HEIGHT, IMG_WIDTH, _ = img.shape
     print(f"Shape da imagem lida: {img.shape}")
 
-    cv2.imshow('Imagem padrao antes de processar', img)
-    print("Pressione algum botão para continuar processo...")
+    # Mostrar imagem
+    cv2.imshow('Imagem padrao antes', img)
+
+    print("Pressione algum botão para continuar o processo...")
     cv2.waitKey(0)  # Aguardar clicar algum botão do teclado
     cv2.destroyAllWindows()
 
-    # Etapa 2.2: Instanciar solução (hands)
+    # Instanciar solução (hands)
     with mp_hands.Hands(
             static_image_mode=True,  # Modo para entrada imagem
             max_num_hands=MAX_NUM_HANDS,  # Número máximo de mãos na imagem
@@ -209,18 +168,17 @@ def process_image():
         # Print handedness e desenha os contorno e linhas da mão
         # print('Handedness:', results.multi_handedness)
 
-        # Dimensões da imagem
-        IMG_HEIGHT, IMG_WIDTH, _ = img.shape
-
-        # Faz uma cópia
+        # Faz duas cópia
         annotated_image = img.copy()
+        annotated_image_2 = img.copy()
 
+        # TODO: é possível fazer melhorias nas funções abaixo (modularizar mais ainda)
         if results.multi_hand_landmarks:  # Caso haja algum resultado
 
             # Mostrando resultados
-            for num, hand_landmarks in enumerate(results.multi_hand_landmarks):  # Iteração em cada mão identificada
+            for i, hand_landmarks in enumerate(results.multi_hand_landmarks):  # Iteração em cada mão identificada
 
-                # Desenhar as conexões na imagem cópia
+                # Desenhar as conexões (linhas e pontos) na imagem cópia
                 mp_drawing.draw_landmarks(annotated_image,
                                           hand_landmarks,
                                           mp_hands.HAND_CONNECTIONS,
@@ -228,42 +186,53 @@ def process_image():
                                           mp_drawing.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2)
                                           )
 
+                # Desenhar as conexões (linhas e pontos) na imagem cópia
+                mp_drawing.draw_landmarks(annotated_image_2,
+                                          hand_landmarks,
+                                          mp_hands.HAND_CONNECTIONS,
+                                          mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
+                                          mp_drawing.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2)
+                                          )
+
                 # Mostra o label da mão
-                if get_hand_informations(num, hand_landmarks, mp_hands.HandLandmark.WRIST, results):  # TODO: testar caso para duas mãos
-                    text, coord = get_hand_informations(num, hand_landmarks, mp_hands.HandLandmark.WRIST, results)
-                    print(f"Informações mão:\n"
+                if get_hand_informations(i, hand_landmarks, mp_hands.HandLandmark.WRIST, results):  # TODO: melhoria: deixar esse ponto como um parâmetro global
+
+                    # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
+                    text, coord = get_hand_informations(i, hand_landmarks, mp_hands.HandLandmark.WRIST, results)
+
+                    print(f"Informações da mão detectada:\n"
                           f"- Geral: {text}\n"
-                          f"- Pontos do ponto escolhido: {coord}")
+                          f"- Coordenadas do ponto escolhido: {coord}")
 
-                    # Mostrar na imagem o label e o score
-                    cv2.putText(annotated_image,  # imagem
-                                text,  # texto
-                                coord,  # coordenada onde vai ser colocado o texto
-                                cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-                                0.5,  # escala
-                                (255, 255, 255),  # cor
-                                1,  # Espessura
-                                cv2.LINE_AA)
+                    # Mostra na imagem (frame) as informações extraídas
+                    display_informations(annotated_image, text, coord, str(mp_hands.HandLandmark.WRIST).split('.')[1])
 
-        #             # Mostrar na imagem as coordenadas de um ponto
-        #             x_ = coord[0]
-        #             y_ = coord[1] + 30
-        #             coord_ = tuple((x_, y_))
-        #             cv2.putText(annotated_image,  # imagem
-        #                         str(coord),  # texto
-        #                         coord_,  # coordenada onde vai ser colocado o texto
-        #                         cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-        #                         0.4,  # escala
-        #                         (255, 255, 255),  # cor
-        #                         1,  # Espessura
-        #                         cv2.LINE_AA)
+            # Inverte imagem já com os tracejos
+            annotated_image_2 = cv2.flip(annotated_image_2, 1)
+
+            # Iteração em cada mão
+            for i, hand in enumerate(results.multi_hand_landmarks):
+                # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
+                text, coord = get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results)
+
+                # Alterações para salvar imagem com informações na orientação espelhada (correta)
+                x_, y_ = coord
+                x_ = IMG_WIDTH - x_
+                coord_ = tuple((x_, y_))
+
+                # Mostra na imagem (frame) as informações extraídas
+                display_informations(annotated_image_2, text, coord_, str(mp_hands.HandLandmark.WRIST).split('.')[1])
+
+            # Converter padrão de cores
+            annotated_image = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)  # BRG para RGB
+            annotated_image_2 = cv2.cvtColor(annotated_image_2, cv2.COLOR_BGR2RGB)  # BRG para RGB
 
             # Mostrar imagem com os tracejos (pontos e linhas)
-            # annotated_image = cv2.flip(annotated_image, 1)  # TODO: entender caso, pq está invertido
-            annotated_image = cv2.cvtColor(annotated_image, cv2.COLOR_BGR2RGB)  # BRG para RGB
-
             cv2.imshow('Imagem padrao processada (espelhado)', annotated_image)
-            print("Pressione algum botão para continuar processo.")
+            cv2.imshow('Imagem padrao processada (sentido correto)', annotated_image_2)
+
+            # Finalizar processo
+            print("Pressione algum botão para continuar e terminar o processo.")
             cv2.waitKey(0)  # Aguardar clicar algum botão do teclado
             cv2.destroyAllWindows()
 
@@ -271,10 +240,74 @@ def process_image():
             print("Não foi possível processar a imagem!")
 
 
-def process_webcam_image():
-    # TODO: colocar descrição da função
+def display_informations(image, text, coord, mark_name=None):
+    """
+    Mostrar informações (texto) em uma imagem em uma posição definida. As informações a serem mostradas
+    são o label e o score da mão detectada, e as coordenadas de um ponto chave específico.
+    """
 
-    # TODO: colocar prints explicando o que será feito
+    # Mostrar na imagem o label e o score
+    cv2.putText(image,  # imagem
+                text,  # texto
+                coord,  # coordenada onde vai ser colocado o texto
+                cv2.FONT_HERSHEY_SIMPLEX,  # fonte
+                TEXT_SCALE,  # escala
+                TEXT_COLOR,  # cor
+                TEXT_THICKNESS,  # Espessura
+                cv2.LINE_AA)
+
+    # Mostrar na imagem as coordenadas de um ponto
+    x_ = coord[0]
+    y_ = coord[1] + 30
+
+    coord_ = tuple((x_, y_))
+    text_ = str(coord)
+    if mark_name is not None:
+        text_ = mark_name + ' ' + str(coord)
+
+    cv2.putText(image,  # imagem
+                text_,  # texto
+                coord_,  # coordenada onde vai ser colocado o texto
+                cv2.FONT_HERSHEY_SIMPLEX,  # fonte
+                TEXT_SCALE - 0.1,  # escala
+                TEXT_COLOR,  # cor
+                TEXT_THICKNESS,  # Espessura
+                cv2.LINE_AA)
+
+
+def display_calculated_informations(image, information):
+    """
+    Mostrar informações extraídas do modelo
+    :param image:
+    :param hand_direction:
+    :return:
+    """
+
+    text = "Informations:"
+    cv2.putText(image, text, tuple((20, 20)),
+                cv2.FONT_HERSHEY_SIMPLEX, TEXT_SCALE - 0.2,
+                TEXT_COLOR, TEXT_THICKNESS, cv2.LINE_AA)
+
+    coord = tuple((20, 30))
+    text = information
+    cv2.putText(image,  # imagem
+                text,  # texto
+                coord,  # coordenada onde vai ser colocado o texto
+                cv2.FONT_HERSHEY_SIMPLEX,  # fonte
+                TEXT_SCALE - 0.2,  # escala
+                TEXT_COLOR,  # cor
+                TEXT_THICKNESS,  # Espessura
+                cv2.LINE_AA)
+
+
+def process_webcam_image():
+    """
+    Aplica a solução de rastreio e detecção de pontos da mão na imagem da webcam. Faz o cortorno dos pontos detectados
+    e coloca na imagem algumas informações básicas.
+    """
+
+    print("Iniciando processo de aplicar solução de detecção e rastreio de ponto da mão na imagem de webcam...")
+    print("Pressione letra Q para terminar processo e letra S para salvar frame na pasta de saída.")
 
     cap = cv2.VideoCapture(0)  # Maioria dos casos a câmera do webcam é 0
 
@@ -289,17 +322,21 @@ def process_webcam_image():
             # Leitura da imagem da câmera
             _, frame = cap.read()  # Frame é lido em formato BGR
 
+            # Dimensões da imagem
+            IMG_HEIGHT, IMG_WIDTH, _ = frame.shape
+
             # Converte BGR para RGB
             image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
             # Inverte na horizontal
-            image = cv2.flip(image, 1)  # TODO: verificar se essa etapa é de fato necessária!!!
+            image = cv2.flip(image, 1)
 
-            # Para aumentar performance flag a imagem, será passada então como referência
+            # Para aumentar performance marque (flag) a imagem, esta será passada então como referência
             image.flags.writeable = False
 
             # Detecção
-            results = hands.process(image)  # Imagem processada em RGB. Imagem processada é espelhada
+            results = hands.process(image)  # Imagem processada em RGB. Imagem processada dever ser espelhada!
+            # Obs.: Nos testes foi observado que se não fizer isso identifica a mão como contrária!
 
             # Flag como true
             image.flags.writeable = True
@@ -307,81 +344,101 @@ def process_webcam_image():
             # Converte RGB para BGR
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)  # Volta para formato BGR
 
+            # Cópia para inverter imagem
+            img_copy = image.copy()
+
             # Mostrando resultados
             if results.multi_hand_landmarks:  # Caso haja algum resultado
 
                 # Print handedness e desenha os contorno e linhas da mão
-                print('Handedness:', results.multi_handedness)
+                # print('Handedness:', results.multi_handedness)
 
                 # Iteração em cada mão
-                for num, hand in enumerate(results.multi_hand_landmarks):
+                for i, hand in enumerate(results.multi_hand_landmarks):
 
-                    # Desenhar as conexões em cada imagem (frame) da câmera
+                    # Desenhar as conexões (linhas e pontos) em cada imagem (frame) da câmera
                     mp_drawing.draw_landmarks(image, hand, mp_hands.HAND_CONNECTIONS,
-                                              mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
-                                              mp_drawing.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2)
+                                              mp_drawing.DrawingSpec(color=POINT_COLOR, thickness=POINT_THICKNESS, circle_radius=POINT_CIRCLE_RADIUS),
+                                              mp_drawing.DrawingSpec(color=LINE_COLOR, thickness=LINE_THICKNESS, circle_radius=LINE_CIRCLE_RADIUS)
                                               )
 
-                    # # Mostra o label da mão
-                    if get_hand_informations(num, hand, mp_hands.HandLandmark.WRIST, results):
-                        text, coord = get_hand_informations(num, hand, mp_hands.HandLandmark.WRIST, results)
+                    # Faz uma cópia apenas com os trações feitos (para salvar imagem em orientação correta)
+                    mp_drawing.draw_landmarks(img_copy, hand, mp_hands.HAND_CONNECTIONS,
+                                              mp_drawing.DrawingSpec(color=POINT_COLOR, thickness=POINT_THICKNESS, circle_radius=POINT_CIRCLE_RADIUS),
+                                              mp_drawing.DrawingSpec(color=LINE_COLOR, thickness=LINE_THICKNESS, circle_radius=LINE_CIRCLE_RADIUS)
+                                              )
 
-                        # Mostrar na imagem o label e o score
-                        cv2.putText(image,  # imagem
-                                    text,  # texto
-                                    coord,  # coordenada onde vai ser colocado o texto
-                                    cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-                                    0.5,  # escala
-                                    (255, 255, 255),  # cor
-                                    1,  # Espessura
-                                    cv2.LINE_AA)
-                    #
-                    #     # Mostrar na imagem as coordenadas de um ponto
-                    #     x_ = coord[0]
-                    #     y_ = coord[1] + 30
-                    #     coord_ = tuple((x_, y_))
-                    #     cv2.putText(image,  # imagem
-                    #                 str(coord),  # texto
-                    #                 coord_,  # coordenada onde vai ser colocado o texto
-                    #                 cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-                    #                 0.4,  # escala
-                    #                 (255, 255, 255),  # cor
-                    #                 1,  # Espessura
-                    #                 cv2.LINE_AA)
+                    # Mostrar informações da mão detectada
+                    if get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results):
+
+                        # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
+                        text, coord = get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results)
+
+                        # Mostra na imagem (frame) as informações extraídas
+                        display_informations(image, text, coord, str(mp_hands.HandLandmark.WRIST).split('.')[1])
+
+                    # --- Extrair informações da mão e dedos ---  # TODO: associar informações a cada mão !!!
+                    hand_direction = calculos.verify_hand_direction(hand)
+                    print(hand_direction)
+
+                    display_calculated_informations(image=image, information=hand_direction)
+
+                    # -------------------------------------------
+
+                # Inverte imagem já com os tracejos
+                image_copy = cv2.flip(img_copy, 1)
+
+                # Iteração em cada mão
+                for i, hand in enumerate(results.multi_hand_landmarks):
+
+                    # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
+                    text, coord = get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results)
+
+                    # Alterações para salvar imagem com informações na orientação espelhada (correta)
+                    x_, y_ = coord
+                    x_ = IMG_WIDTH - x_
+                    coord_ = tuple((x_, y_))
+
+                    # Mostra na imagem (frame) as informações extraídas
+                    display_informations(image_copy, text, coord_, str(mp_hands.HandLandmark.WRIST).split('.')[1])
+
+                # cv2.imshow("Hand tracking (mirrored)", image_copy)
 
             # Mostrar imagem
             cv2.imshow('Hand tracking', image)
 
             # Sair do loop
-            if cv2.waitKey(5) & 0xFF == ord('q'):  # Pressionar 'q' para sair
+            if cv2.waitKey(1) & 0xFF == ord('s'):  # Pressione 's' para salvar frame
                 # Salvar imagem com nome único
                 file_name = '{}.jpg'.format(uuid.uuid1())  # Nome único
-                # cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image)  # Salvar frame
+                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image_copy)  # Salvar frame
+            elif cv2.waitKey(1) & 0xFF == ord('q'):  # Pressione 'q' para sair
+                print("Terminando processo...")
                 break
 
-    # Libera recursos alocados
+    # Liberar recursos alocados
     cap.release()
     cv2.destroyAllWindows()
-
 
 
 if __name__ == '__main__':
 
     # MediaPipe Hand
-    # mp_drawing_styles = mp.solutions.drawing_styles  # TODO: entender pq nao funciona. Talvez mudou o nome do metodo ?
+    # mp_drawing_styles = mp.solutions.drawing_styles  # TODO: entender pq nao funciona. Talvez mudou o nome do método ?
     print("Inicializando processo...")
     mp_hands = mp.solutions.hands  # Solução para detecção e rastreio de mão e dedos
     mp_drawing = mp.solutions.drawing_utils  # Solução para desenhos das conexões entre os pontos
 
     # Etapa 1: Escolher ação a ser processado (imagem ou vídeo)
-    # print("Olá. Deseja processar uma imagem (1) ou o vídeo de sua câmera do notebook (2) ou acessar a webcam do seu notebook (3) ?")
+    # print("Olá. Deseja processar uma imagem (1) ou o vídeo de sua câmera do notebook (2) ? Ou apenas acessar a webcam "
+    #       "do seu notebook (3) sem aplica a solução do MediaPipe Hands ?")
 
     flag = False
     modes = ["1", "2", "3"]  # Opções aceitas
     start_time = dt.now()  # Início do processo
-    max_time = 1*60  # Máximo de tempo esperando uma entrada
+    max_time = 1 * 60  # Máximo de tempo esperando uma entrada
 
-    option = "1"  # Imagem  # TODO: provisório
+    option = "2"  # TODO: provisório
     # while flag is False and (dt.now() - start_time).seconds < max_time:  # TODO: decomentar
     #     option = input("Escolher opção: ...")
     #     print("Analisando escolha")
@@ -395,96 +452,15 @@ if __name__ == '__main__':
     #     print("Processo finalizado, não foi feito uma escolha correta. Até a próxima :)")
     #     exit()
 
-    # Etapa 2: Executar ação escolhida
-    if option == "1":  # Processar imagem (ler pontos chaves da mão)
-        process_image()
+    # Etapa 2: Executar ação escolhidaqq
+    if option == "1":  # Processar imagem (ler pontos chaves da mã, aplicar solução MediaPipe Hands)
+        process_image()  # Imagem processada é mostrada
 
-    elif option == "2":  # Processar vídeo da câmera webcam
-        process_webcam_image()  # TODO: investigando esse caso para duas mãos
+    elif option == "2":  # Processar vídeo da câmera webcam (aplicar solução MediaPipe Hands)
+        process_webcam_image()  # Possível salvar o frame
 
-    elif option == "3":  # Acessar webcam do notebook
-        display_webcam()
+    elif option == "3":  # Apenas acessar webcam do notebook
+        display_webcam()  # Possível salvar o frame
 
     print("Processo finalizado. Até a próxima :)")
 
-    # # Etapa 1: Determinar imagem a ser processada
-    # file = input_images_path + "letra_a_img.jpg"
-    #
-    # # Ler imagem, invertê-la na horizontal
-    # img = cv2.imread("images/letra_a_img.jpg")
-    #
-    # img = cv2.flip(cv2.imread(file), 1)  # Imagem lida com formato BGR
-    # cv2.imshow('Exemplo de deteccao e rastreio de maos e dedos', img)
-    # cv2.waitKey(0)  # Clica botão teclado
-    # cv2.destroyAllWindows()
-    #
-    # # Etapa 2: Instanciar solução (hands) e processar imagem
-    # # hands = mp_hands(static_image_mode=True, max_num_hands=2, min_detection_confidence=0.8, min_tracking_confidence=0.5)
-    #
-    # with mp_hands.Hands(
-    #         static_image_mode=True,  # Modo para entrada imagem
-    #         max_num_hands=2,  # Número máximo de mãos na imagem
-    #         min_detection_confidence=0.8,  # Nivel de confiança mínimo para detecção
-    #         min_tracking_confidence=0.5,  # Nível de confiança mínimo para rastreio
-    # ) as hands:
-    #
-    #     # Ler imagem, invertê-la na horizontal
-    #     img = cv2.flip(cv2.imread(file), 1)  # Imagem lida com formato BGR
-    #
-    #     # Converte imagem antes de processa-la
-    #     results = hands.process(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))  # Imagem processa em formato RBG
-    #
-    #     # Print handedness e desenha os contorno e linhas da mão
-    #     print('Handedness:', results.multi_handedness)
-    #
-    #     # Dimensões da imagem
-    #     image_height, image_width, _ = img.shape
-    #
-    #     # Faz uma cópia
-    #     annotated_image = img.copy()
-    #
-    #     # Mostrando resultados
-    #     for num, hand_landmarks in enumerate(results.multi_hand_landmarks):  # Iteração em cada mão identificada
-    #
-    #         # print('hand_landmarks:', hand_landmarks)
-    #         print(
-    #             f'Index finger tip coordinates: (',
-    #             f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x * image_width}, '
-    #             f'{hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y * image_height})'
-    #         )
-    #
-    #         # Desenhar as conexões na imagem cópia
-    #         mp_drawing.draw_landmarks(annotated_image,
-    #                                   hand_landmarks,
-    #                                   mp_hands.HAND_CONNECTIONS
-    #                                   # mp_drawing.DrawingSpec(color=(121, 22, 76), thickness=2, circle_radius=4),
-    #                                   # mp_drawing.DrawingSpec(color=(250, 44, 250), thickness=2, circle_radius=2)
-    #                                   )
-    #
-    #         # Mostra o label da mão
-    #         if get_informations_hand(num, hand_landmarks, mp_hands.HandLandmark.WRIST, results):  # TODO: não está funcionando!
-    #             text, coord = get_informations_hand(num, hand_landmarks, mp_hands.HandLandmark.WRIST, results)
-    #             print(text, coord)
-    #
-    #             # Mostrar na imagem o label e o score
-    #             cv2.putText(annotated_image,  # imagem
-    #                         text,  # texto
-    #                         coord,  # coordenada onde vai ser colocado o texto
-    #                         cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-    #                         0.5,  # escala
-    #                         (255, 255, 255),  # cor
-    #                         1,  # Espessura
-    #                         cv2.LINE_AA)
-    #
-    #             # Mostrar na imagem as coordenadas de um ponto
-    #             x_ = coord[0]
-    #             y_ = coord[1] + 30
-    #             coord_ = tuple((x_, y_))
-    #             cv2.putText(annotated_image,  # imagem
-    #                         str(coord),  # texto
-    #                         coord_,  # coordenada onde vai ser colocado o texto
-    #                         cv2.FONT_HERSHEY_SIMPLEX,  # fonte
-    #                         0.4,  # escala
-    #                         (255, 255, 255),  # cor
-    #                         1,  # Espessura
-    #                         cv2.LINE_AA)

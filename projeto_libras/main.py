@@ -5,7 +5,8 @@ import uuid
 import numpy as np
 import mediapipe as mp
 from datetime import datetime as dt
-import calculos
+import calculations
+import alphabet
 
 # import matplotlib.pyplot as plt
 
@@ -43,6 +44,8 @@ POINT_CIRCLE_RADIUS = 2
 TEXT_SCALE = 0.5
 TEXT_COLOR = (255, 255, 255)  # BGR
 TEXT_THICKNESS = 1
+
+
 # -------------------------
 
 
@@ -279,7 +282,7 @@ def display_calculated_informations(image, information):
     """
     Mostrar informações extraídas do modelo
     :param image:
-    :param hand_direction:
+    :param information:
     :return:
     """
 
@@ -298,6 +301,15 @@ def display_calculated_informations(image, information):
                 TEXT_COLOR,  # cor
                 TEXT_THICKNESS,  # Espessura
                 cv2.LINE_AA)
+
+
+def display_identified_letter(image, identified_letter, img_width):
+    text = "Letra identificada: " + identified_letter
+    x = int(img_width / 2) - 100
+    coord = tuple((x, 35))  # Coordenadas (x,y)
+    cv2.putText(image, text, coord,
+                cv2.FONT_HERSHEY_SIMPLEX, TEXT_SCALE + 0.2,
+                TEXT_COLOR, TEXT_THICKNESS, cv2.LINE_AA)
 
 
 def process_webcam_image():
@@ -370,7 +382,6 @@ def process_webcam_image():
 
                     # Mostrar informações da mão detectada
                     if get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results):
-
                         # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
                         text, coord = get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results)
 
@@ -378,19 +389,42 @@ def process_webcam_image():
                         display_informations(image, text, coord, str(mp_hands.HandLandmark.WRIST).split('.')[1])
 
                     # --- Extrair informações da mão e dedos ---  # TODO: associar informações a cada mão !!!
-                    hand_direction = calculos.verify_hand_direction(hand)
-                    print(hand_direction)
+                    # 1. Direção da mão
+                    hand_direction = calculations.verify_hand_direction(hand=hand)
+                    # print(hand_direction)
 
-                    display_calculated_informations(image=image, information=hand_direction)
+                    # 2. Pontos ds dedos
+                    hand_fingers_points = calculations.extract_finger_points(hand=hand, img_height=IMG_HEIGHT, img_width=IMG_WIDTH)
+                    # print(hand_fingers_points)
 
-                    # -------------------------------------------
+                    # 3. Estados dos dedos
+                    hand_fingers_states = calculations.verify_hand_fingers_states(hand=hand, img_height=IMG_HEIGHT, hand_direction=hand_direction,
+                                                                                  hand_fingers_points=hand_fingers_points)  # TODO: melhorar
+                    print(hand_fingers_states)
+
+                    # --- Testes para ajustar parâmetros ---
+                    finger_distance = calculations.compute_distance_adjacent_finger(finger_name=HAND_FINGERS[1], adjacent_finger=HAND_FINGERS[2], hand_fingers_points=hand_fingers_points)
+                    finger_distance = round(finger_distance, 2)
+
+                    display_calculated_informations(image=image, information=str(finger_distance))
+                    # --------------------------------------
+
+                    # --- Indentificar letra ---
+                    hand_state = {
+                        'direction': hand_direction,
+                        'label': results.multi_handedness[i].classification[0].label.lower(),
+                        'fingers_states': hand_fingers_states
+                    }
+                    letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características das letras
+                    # print(letter)
+                    display_identified_letter(image=image, identified_letter=letter, img_width=IMG_WIDTH)
+                    # --------------------------
 
                 # Inverte imagem já com os tracejos
                 image_copy = cv2.flip(img_copy, 1)
 
                 # Iteração em cada mão
                 for i, hand in enumerate(results.multi_hand_landmarks):
-
                     # Extrai o label e o score da mão detectada, e as coordenadas do ponto passada como parâmetro
                     text, coord = get_hand_informations(i, hand, mp_hands.HandLandmark.WRIST, results)
 
@@ -463,4 +497,3 @@ if __name__ == '__main__':
         display_webcam()  # Possível salvar o frame
 
     print("Processo finalizado. Até a próxima :)")
-

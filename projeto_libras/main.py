@@ -278,7 +278,7 @@ def display_informations(image, text, coord, mark_name=None):
                 cv2.LINE_AA)
 
 
-def display_calculated_informations(image, information):
+def display_calculated_informations(image, information, coord=None):
     """
     Mostrar informações extraídas do modelo
     :param image:
@@ -291,7 +291,9 @@ def display_calculated_informations(image, information):
                 cv2.FONT_HERSHEY_SIMPLEX, TEXT_SCALE - 0.2,
                 TEXT_COLOR, TEXT_THICKNESS, cv2.LINE_AA)
 
-    coord = tuple((20, 30))
+    if coord is None:
+        coord = tuple((20, 30))
+
     text = information
     cv2.putText(image,  # imagem
                 text,  # texto
@@ -402,20 +404,41 @@ def process_webcam_image():
                                                                                   hand_fingers_points=hand_fingers_points)  # TODO: melhorar
                     print(hand_fingers_states)
 
-                    # --- Testes para ajustar parâmetros ---
-                    finger_distance = calculations.compute_distance_adjacent_finger(finger_name=HAND_FINGERS[1], adjacent_finger=HAND_FINGERS[2], hand_fingers_points=hand_fingers_points)
-                    finger_distance = round(finger_distance, 2)
+                    # 4. Face da mão voltada (palma ou costas da mão)
+                    hand_side = calculations.verify_hand_side_foward(label=results.multi_handedness[i].classification[0].label.lower(),
+                                                                     hand=hand, hand_direction=hand_direction)
+                    # print(hand_side)
 
-                    display_calculated_informations(image=image, information=str(finger_distance))
+                    # 5. Verificar se mão está em posição neutra
+                    hand_position = calculations.verify_hand_position(hand_direction=hand_direction, hand_fingers_points=hand_fingers_points)
+                    # print(hand_angle)
+
+                    # --- Testes para ajustar parâmetros ---
+                    # diference_thumb = calculations.compute_thumb_diference(hand_fingers_points=hand_fingers_points)
+                    # diference_thumb = round(diference_thumb, 2)
+                    # finger_distance = calculations.compute_distance_adjacent_finger(finger_name=HAND_FINGERS[1], adjacent_finger=HAND_FINGERS[2], hand_fingers_points=hand_fingers_points)
+                    # finger_distance = round(finger_distance, 2)
+                    # thumb_distance = calculations.compute_distance_adjancent_finger_thumb(hand_fingers_points=hand_fingers_points)
+                    # thumb_distance = round(thumb_distance, 2)
+                    # length = calculations.compute_reference_value(hand_fingers_points=hand_fingers_points)
+                    # length = round(length, 2)
+                    # display_calculated_informations(image=image, information=f"Thumb distance: {thumb_distance}", coord=tuple((20, 60)))
                     # --------------------------------------
+
+                    # Mostrar características determinada
+                    display_calculated_informations(image=image, information=f"Hand direction: {hand_direction}")
+                    display_calculated_informations(image=image, information=f"Hand side: {hand_side}", coord=tuple((20, 40)))
+                    display_calculated_informations(image=image, information=f"Hand position: {hand_position}", coord=tuple((20, 50)))
 
                     # --- Indentificar letra ---
                     hand_state = {
                         'direction': hand_direction,
+                        'side': hand_side,
+                        'position': hand_position,
                         'label': results.multi_handedness[i].classification[0].label.lower(),
                         'fingers_states': hand_fingers_states
                     }
-                    letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características das letras
+                    letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características de mais letras do alfabeto !
                     # print(letter)
                     display_identified_letter(image=image, identified_letter=letter, img_width=IMG_WIDTH)
                     # --------------------------

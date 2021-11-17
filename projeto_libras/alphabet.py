@@ -89,6 +89,13 @@ class AlphabetLetters(Enum):
 
 
 def identify_letter(alphabet_letters, states):
+    """
+    Compara o estado de uma mão (e dedos) detectada e rastreada com estados pré-definidos
+    que correspondem a letras do alfabeto manual de Libras.
+    :param alphabet_letters: letras do alfabeto com suas características (dicionário)
+    :param states: estado de uma mão detectada e seus dedos
+    :return: letra indentifica ou vazio
+    """
     for letter in alphabet_letters:
         if letter.value == states:
             return letter.name

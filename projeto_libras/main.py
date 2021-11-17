@@ -45,14 +45,17 @@ TEXT_SCALE = 0.5
 TEXT_COLOR = (255, 255, 255)  # BGR
 TEXT_THICKNESS = 1
 
-
+# Tempo de duração de vídeo gerado
+VIDEO_LENGTH_SECONDS = 10  # Tempo em segundos
 # -------------------------
 
 
 def display_webcam(filename=None):
     """
-    Inicializa webcam. Para parar o processo pressionar o botão 'q' e para salvar o frame (imagem) na pasta OUTPUT_IMAGES_PATH
-    pressione "s".
+    Inicializa webcam de computador. Para parar o processo pressione letra 'q' e para salvar o frame (imagem) na pasta OUTPUT_IMAGES_PATH
+    pressione letra "s".
+    :param filename:
+    :return:
     """
 
     # Create a video capture object for the camera
@@ -82,10 +85,10 @@ def display_webcam(filename=None):
             # print("Frame salvo.")
 
             # Press 'q' button to quit and 's' button to save the image
-            if cv2.waitKey(1) & 0xFF == ord('q'):
+            if cv2.waitKey(10) & 0xFF == ord('q'):
                 print("Terminando processo...")
                 break
-            elif cv2.waitKey(1) & 0xFF == ord('s'):
+            elif cv2.waitKey(10) & 0xFF == ord('s'):
                 # Salvar imagem com nome único
                 print("Salvando frame...")
                 file_name = '{}.jpg'.format(uuid.uuid1())  # Nome único
@@ -104,8 +107,13 @@ def display_webcam(filename=None):
 
 def get_hand_informations(index, hand_landmarks, mark_name, results):
     """
-    Retorna um texto com o label (left ou right) e o score para uma mão específica (índice), e
-    as coordenadas x e y desta mão para um ponto da mão específico.
+    Retorna um texto (string) com o label (left ou right) e o score (confiabilidade) para uma mão específica (índice), e
+    retorna também as coordenadas x e y desta mão para um ponto da mão específico.
+    :param index: índice da mão detectada
+    :param hand_landmarks: pontos (coordenadas) da mão detectada
+    :param mark_name: ponto específico para retornar suas coordenadas (x, y)
+    :param results: output do modelo MediaPipe Hands
+    :return: string com informações da mão detectada (label e score) e coordenadas de um ponto específico
     """
 
     # Mão detectada
@@ -133,6 +141,7 @@ def process_image():
     """
     Lê uma imagem padrão (input) e aplica a solução de rastreio e detecção de pontos da mão na imagem da webcam. Faz o cortorno dos pontos detectados
     e coloca na imagem algumas informações básicas.
+    :return:
     """
     print("Processar uma imagem padrão...")
 
@@ -171,7 +180,7 @@ def process_image():
         # Print handedness e desenha os contorno e linhas da mão
         # print('Handedness:', results.multi_handedness)
 
-        # Faz duas cópia
+        # Faz duas cópias
         annotated_image = img.copy()
         annotated_image_2 = img.copy()
 
@@ -245,8 +254,13 @@ def process_image():
 
 def display_informations(image, text, coord, mark_name=None):
     """
-    Mostrar informações (texto) em uma imagem em uma posição definida. As informações a serem mostradas
+    Mostra informações (texto) em uma imagem em uma posição definida. As informações a serem mostradas
     são o label e o score da mão detectada, e as coordenadas de um ponto chave específico.
+    :param image: imagem onde serão adicionados informações
+    :param text: texto a ser adicionado na imagem
+    :param coord: tupla com coornedadas (x, y) onde serão dispostas as informações
+    :param mark_name: nome de ponto específico da mão
+    :return:
     """
 
     # Mostrar na imagem o label e o score
@@ -280,9 +294,10 @@ def display_informations(image, text, coord, mark_name=None):
 
 def display_calculated_informations(image, information, coord=None):
     """
-    Mostrar informações extraídas do modelo
-    :param image:
-    :param information:
+    Mostrar em um imagem informações extraídas da mão e/ou dedos.
+    :param coord: coordenadas (x, y) para se mostrar informaçõa na imagem
+    :param image: imagem analisada
+    :param information: texto (string) a ser mostrado
     :return:
     """
 
@@ -306,6 +321,13 @@ def display_calculated_informations(image, information, coord=None):
 
 
 def display_identified_letter(image, identified_letter, img_width):
+    """
+    Mostra na imagem a possível letra identificada.
+    :param image: imagem
+    :param identified_letter: possível letra identificada
+    :param img_width: largura da imagem
+    :return:
+    """
     text = "Letra identificada: " + identified_letter
     x = int(img_width / 2) - 100
     coord = tuple((x, 35))  # Coordenadas (x,y)
@@ -316,14 +338,35 @@ def display_identified_letter(image, identified_letter, img_width):
 
 def process_webcam_image():
     """
-    Aplica a solução de rastreio e detecção de pontos da mão na imagem da webcam. Faz o cortorno dos pontos detectados
-    e coloca na imagem algumas informações básicas.
+    Aplica solução de rastreio e detecção de pontos da mão na imagem da webcam. Faz o cortorno dos pontos detectados
+    e coloca na imagem algumas informações básicas. Detecteca letra do alfabeto manual de Libras.  # TODO: verificar (se precisa adicionar algo)
+    :return:
     """
 
     print("Iniciando processo de aplicar solução de detecção e rastreio de ponto da mão na imagem de webcam...")
     print("Pressione letra Q para terminar processo e letra S para salvar frame na pasta de saída.")
 
+    # Capturar vídeo
     cap = cv2.VideoCapture(0)  # Maioria dos casos a câmera do webcam é 0
+
+    # Propriedades da webcam
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    # print(fps)
+
+    # Variáveis auxiliares
+    no_total_frames = int(fps * VIDEO_LENGTH_SECONDS)
+    # print(no_total_frames)
+    count_frames = 0  # Váriavel auxiliar
+    flag_write_video = False
+
+    # Instanciando objeto para escrever (registrar vídeo)
+    file_name_video = 'output_video_{}.avi'.format(uuid.uuid1())  # Nome único
+    file_path_video = os.path.join(OUTPUT_IMAGES_PATH, file_name_video)
+    video_writer = cv2.VideoWriter(file_path_video,
+                                   cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'),  # Codificação do vídeo
+                                   fps, (width, height))
 
     # Comando 'with' garante que os recursos sejam fechados após a execução do bloco
     with mp_hands.Hands(
@@ -400,9 +443,9 @@ def process_webcam_image():
                     # print(hand_fingers_points)
 
                     # 3. Estados dos dedos
-                    hand_fingers_states = calculations.verify_hand_fingers_states(hand=hand, img_height=IMG_HEIGHT, hand_direction=hand_direction,
+                    hand_fingers_states = calculations.verify_hand_fingers_states(hand_direction=hand_direction,
                                                                                   hand_fingers_points=hand_fingers_points)  # TODO: melhorar
-                    print(hand_fingers_states)
+                    # print(hand_fingers_states)
 
                     # 4. Face da mão voltada (palma ou costas da mão)
                     hand_side = calculations.verify_hand_side_foward(label=results.multi_handedness[i].classification[0].label.lower(),
@@ -414,7 +457,7 @@ def process_webcam_image():
                     # print(hand_angle)
 
                     # --- Testes para ajustar parâmetros ---
-                    # diference_thumb = calculations.compute_thumb_diference(hand_fingers_points=hand_fingers_points)
+                    # diference_thumb = calculations.compute_distance_adjancent_finger_thumb(hand_fingers_points=hand_fingers_points)
                     # diference_thumb = round(diference_thumb, 2)
                     # finger_distance = calculations.compute_distance_adjacent_finger(finger_name=HAND_FINGERS[1], adjacent_finger=HAND_FINGERS[2], hand_fingers_points=hand_fingers_points)
                     # finger_distance = round(finger_distance, 2)
@@ -425,8 +468,8 @@ def process_webcam_image():
                     # display_calculated_informations(image=image, information=f"Thumb distance: {thumb_distance}", coord=tuple((20, 60)))
                     # --------------------------------------
 
-                    # Mostrar características determinada
-                    display_calculated_informations(image=image, information=f"Hand direction: {hand_direction}")
+                    # Mostrar características determinadas
+                    display_calculated_informations(image=image, information=f"Hand direction: {hand_direction}")  # TODO: adicionar tratativa para outra mão ?
                     display_calculated_informations(image=image, information=f"Hand side: {hand_side}", coord=tuple((20, 40)))
                     display_calculated_informations(image=image, information=f"Hand position: {hand_position}", coord=tuple((20, 50)))
 
@@ -443,6 +486,8 @@ def process_webcam_image():
                     display_identified_letter(image=image, identified_letter=letter, img_width=IMG_WIDTH)
                     # --------------------------
 
+                # --- Inverter a imagem espelhada e colocar informaçoes ---
+                # TODO: verificar se funciona e arrumar (adicionar mais informações) -> modularizar
                 # Inverte imagem já com os tracejos
                 image_copy = cv2.flip(img_copy, 1)
 
@@ -460,27 +505,47 @@ def process_webcam_image():
                     display_informations(image_copy, text, coord_, str(mp_hands.HandLandmark.WRIST).split('.')[1])
 
                 # cv2.imshow("Hand tracking (mirrored)", image_copy)
+                # ---------------------------------------------------------
 
             # Mostrar imagem
             cv2.imshow('Hand tracking', image)
 
+            # Gravar vídeo
+            # video_writer.write(image)
+            if flag_write_video is True:
+                if count_frames < no_total_frames:
+                    video_writer.write(image)
+                    count_frames += 1
+                    print("Gravando...")
+                else:  # Acabou
+                    flag_write_video = False
+                    count_frames = 0
+                    print("Vídeo gravado!")
+
             # Sair do loop
-            if cv2.waitKey(1) & 0xFF == ord('s'):  # Pressione 's' para salvar frame
+            if cv2.waitKey(10) & 0xFF == ord('s'):  # Pressione 's' para salvar frame
                 # Salvar imagem com nome único
+                print("Salvando frame...")
                 file_name = '{}.jpg'.format(uuid.uuid1())  # Nome único
-                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image_copy)  # Salvar frame
-            elif cv2.waitKey(1) & 0xFF == ord('q'):  # Pressione 'q' para sair
+                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image_copy)  # Salvar frame  # TODO: verificar isso! (se imagem não está saindo invertida)
+                print("Frame salvo!")
+            elif cv2.waitKey(10) & 0xFF == ord('q'):  # Pressione 'q' para sair
                 print("Terminando processo...")
                 break
+            elif cv2.waitKey(10) & 0xFF == ord('v'):  # Pressione 'v' para gravar vídeo dos próximos frames
+                print(f"Gravando os próximos {VIDEO_LENGTH_SECONDS} segundos de imagem")
+                flag_write_video = True
+                count_frames = 0
 
     # Liberar recursos alocados
     cap.release()
     cv2.destroyAllWindows()
+    video_writer.release()
 
 
 if __name__ == '__main__':
 
-    # MediaPipe Hand
+    # Solução MediaPipe Hand
     # mp_drawing_styles = mp.solutions.drawing_styles  # TODO: entender pq nao funciona. Talvez mudou o nome do método ?
     print("Inicializando processo...")
     mp_hands = mp.solutions.hands  # Solução para detecção e rastreio de mão e dedos

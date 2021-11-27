@@ -8,11 +8,11 @@ HAND_FINGERS = ["thumb", "index-finger", "middle-finger", "ring-finger", "pinky"
 # Parâmetros utilizados nos cálculos
 THRESHOLD_THUMB_CONDITION = 80  # Utilizado para determinar se dedo está 'esticado' ou 'dobrado'
 
-THRESHOLD_FINGER_DISTANCE = 150  # Utilizado para determinar se dedo esta 'próximo' ou 'afastado'
-THRESHOLD_FINGER_DISTANCE_ = 200  # Utilizado para determinar se dedo está 'mais afastado'
+THRESHOLD_FINGER_DISTANCE = 160  # Utilizado para determinar se dedo esta 'próximo' ou 'afastado'
+THRESHOLD_FINGER_DISTANCE_ = 210  # Utilizado para determinar se dedo está 'mais afastado'
 
 THRESHOLD_THUMB_DISTANCE = 230  # Utilizado para determinar se dedo esta 'próximo' ou 'afastado'
-THRESHOLD_THUMB_DISTANCE_ = 280  # Utilizado para determinar se dedo está 'mais afastado'
+THRESHOLD_THUMB_DISTANCE_ = 275  # Utilizado para determinar se dedo está 'mais afastado'
 
 THRESHOLD_ANGLE = 30  # Utilizado para determinar se mão está em posição 'neutra' ou 'rotacionada'
 # -------------------------
@@ -395,6 +395,9 @@ def verify_adjacent_finger(states_, finger_name, adjacent_finger, hand_fingers_p
         else:
             # Mais afastado do dedo adjacente
             state_adjacent_finger = f"far away from {adjacent_finger}"  # TODO: verificar se continua assim com três estados
+        # else:
+        #     # Afastado do dedo adjacente
+        #     state_adjacent_finger = f"away from {adjacent_finger}"
     else:
         # Distãncia entre ponta dos dedos
         if finger_name in ['ring-finger']:
@@ -428,12 +431,15 @@ def verify_adjacent_finger(states_, finger_name, adjacent_finger, hand_fingers_p
         if distance <= THRESHOLD_FINGER_DISTANCE:
             # Próximo do dedo adjacente
             state_adjacent_finger = f"next to {adjacent_finger}"
-        elif THRESHOLD_FINGER_DISTANCE < distance <= THRESHOLD_FINGER_DISTANCE_:
+        # elif THRESHOLD_FINGER_DISTANCE < distance <= THRESHOLD_FINGER_DISTANCE_:
+        #     # Afastado do dedo adjacente
+        #     state_adjacent_finger = f"away from {adjacent_finger}"
+        # else:
+        #     # Mais afastado do dedo adjacente
+        #     state_adjacent_finger = f"far away from {adjacent_finger}"   # TODO: verificar se continua assim com três estados
+        else:
             # Afastado do dedo adjacente
             state_adjacent_finger = f"away from {adjacent_finger}"
-        else:
-            # Mais afastado do dedo adjacente
-            state_adjacent_finger = f"far away from {adjacent_finger}"   # TODO: verificar se continua assim com três estados
 
     # # Estados diferentes
     # else:

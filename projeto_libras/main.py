@@ -445,7 +445,7 @@ def process_webcam_image():
                     # 3. Estados dos dedos
                     hand_fingers_states = calculations.verify_hand_fingers_states(hand_direction=hand_direction,
                                                                                   hand_fingers_points=hand_fingers_points)  # TODO: melhorar
-                    # print(hand_fingers_states)
+                    print(hand_fingers_states)
 
                     # 4. Face da mão voltada (palma ou costas da mão)
                     hand_side = calculations.verify_hand_side_foward(label=results.multi_handedness[i].classification[0].label.lower(),
@@ -483,6 +483,8 @@ def process_webcam_image():
                     }
                     letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características de mais letras do alfabeto !
                     # print(letter)
+                    # if letter != "":  # TODO: descomentar
+                    #     letter = letter[0]
                     display_identified_letter(image=image, identified_letter=letter, img_width=IMG_WIDTH)
                     # --------------------------
 
@@ -527,7 +529,8 @@ def process_webcam_image():
                 # Salvar imagem com nome único
                 print("Salvando frame...")
                 file_name = '{}.jpg'.format(uuid.uuid1())  # Nome único
-                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image_copy)  # Salvar frame  # TODO: verificar isso! (se imagem não está saindo invertida)
+                cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image)  # Salvar frame
+                # cv2.imwrite(OUTPUT_IMAGES_PATH + file_name, image_copy)  # Salvar frame  # TODO: verificar isso! (se imagem não está saindo invertida)
                 print("Frame salvo!")
             elif cv2.waitKey(10) & 0xFF == ord('q'):  # Pressione 'q' para sair
                 print("Terminando processo...")

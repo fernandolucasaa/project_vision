@@ -483,8 +483,8 @@ def process_webcam_image():
                     }
                     letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características de mais letras do alfabeto !
                     # print(letter)
-                    # if letter != "":  # TODO: descomentar
-                    #     letter = letter[0]
+                    if letter != "":
+                        letter = letter[0]
                     display_identified_letter(image=image, identified_letter=letter, img_width=IMG_WIDTH)
                     # --------------------------
 

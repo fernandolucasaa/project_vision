@@ -481,7 +481,7 @@ def process_webcam_image():
                         'label': results.multi_handedness[i].classification[0].label.lower(),
                         'fingers_states': hand_fingers_states
                     }
-                    letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)  # TODO: preencher características de mais letras do alfabeto !
+                    letter = alphabet.identify_letter(alphabet_letters=alphabet.AlphabetLetters, states=hand_state)
                     # print(letter)
                     if letter != "":
                         letter = letter[0]
@@ -564,7 +564,7 @@ if __name__ == '__main__':
     max_time = 1 * 60  # Máximo de tempo esperando uma entrada
 
     option = "2"  # TODO: provisório
-    # while flag is False and (dt.now() - start_time).seconds < max_time:  # TODO: decomentar
+    # while flag is False and (dt.now() - start_time).seconds < max_time:  # TODO: descomentar
     #     option = input("Escolher opção: ...")
     #     print("Analisando escolha")
     #     if option is not None:  # Alguma entrada lida
